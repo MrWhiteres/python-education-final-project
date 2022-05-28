@@ -1,0 +1,5 @@
+venv
+.idea
+README.md
+.gitignore
+er_scheme_db
