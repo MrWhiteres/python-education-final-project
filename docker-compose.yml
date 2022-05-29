@@ -2,6 +2,8 @@ version: "3"
 services:
   db:
     image: postgres:14.2
+    env_file:
+      - .env
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -12,20 +14,10 @@ services:
     ports:
       - "5432:5432"
 
-  pgadmin:
-    image: dpage/pgadmin4:6.8
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_LISTEN_PORT: 80
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
-
   web:
     container_name: 'web_app'
+    env_file:
+      - .env
     command:
       bash -c "python3 /flask_project/manage.py"
     build:
@@ -33,7 +25,6 @@ services:
       context: .
     environment:
       PY_AUTORELOAD: true
-        - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     volumes:
       - ./flask_project:/flask_project
     links:
@@ -51,4 +42,3 @@ services:
       - "80:80"
 volumes:
   pgdata:
-  pgadmin-data:

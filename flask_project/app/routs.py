@@ -1,8 +1,8 @@
-from flask import jsonify
 from app import app
+from flask import jsonify
 
 
-@app.route("/ip")
+@app.route("/")
 def ip():
     from socket import gethostbyname, getfqdn
     ip_user = gethostbyname(getfqdn())
