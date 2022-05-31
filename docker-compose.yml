@@ -1,6 +1,7 @@
 version: "3"
 services:
   db:
+    container_name: PostgresSQl
     image: postgres:14.2
     env_file:
       - .env
@@ -19,7 +20,7 @@ services:
     env_file:
       - .env
     command:
-      bash -c "python3 /flask_project/manage.py"
+      bash -c "python3 /flask_project/manage.py runserver"
     build:
       dockerfile: Dockerfile
       context: .
@@ -33,6 +34,7 @@ services:
       - "8000:8000"
 
   nginx:
+    container_name: Nginx
     build:
       context: nginx/
       dockerfile: Dockerfile
