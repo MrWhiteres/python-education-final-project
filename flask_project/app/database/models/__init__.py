@@ -1,4 +1,4 @@
-from app.database import db
+from app.database import db, marsh
 
 
 class BaseModel:
@@ -9,3 +9,7 @@ class BaseModel:
     def delete_from_db(self):
         db.session.delete(self)
         db.session.commit()
+
+    @staticmethod
+    def rollback():
+        db.session.rollback()
