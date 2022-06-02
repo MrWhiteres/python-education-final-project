@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py')
 
 from . import routs
-from .database import db, migrate
+from .database import db, migrate, marsh
 
 login_manager = LoginManager(app)
 
@@ -20,7 +20,10 @@ def init_db():
     from .database.models import director, user, film, genre, genre_film, role
     db.init_app(app)
     migrate.init_app(app, db, directory='migrations/')
+    marsh.init_app(app)
     db.create_all()
+    from .database.db_add import add_inform
+    add_inform()
 
     @login_manager.user_loader
     def load_user(user_id):
