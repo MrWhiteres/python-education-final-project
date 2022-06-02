@@ -1,10 +1,15 @@
+# Command starts docker container in silent mode without logs.
 up:
 	docker-compose up -d
+# Command starts docker container in reconstruction mode.
 build:
 	docker-compose up --build
+# Command disables all currently running docker containers.
 down:
 	docker-compose down
+# Command prints the logs of the container with the flask application.
 log:
 	docker logs web_app
+# Initial website performance check.
 check:
 	curl -X GET  http://127.0.0.1

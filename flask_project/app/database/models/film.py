@@ -1,3 +1,6 @@
+"""
+Module stores the object model films.
+"""
 from datetime import datetime
 
 from . import BaseModel, db, marsh
@@ -6,8 +9,11 @@ from .genre import Genre
 
 
 class Film(db.Model, BaseModel):
+    """
+    Class is the schema for the movie table.
+    """
     id = db.Column(db.Integer, primary_key=True, unique=True)
-    movie_title = db.Column(db.String(255), nullable=False)
+    movie_title = db.Column(db.String(255), nullable=False, unique=True)
     release_date = db.Column(db.DateTime, default=datetime.utcnow)
     rating = db.Column(db.Integer, nullable=False)
     poster = db.Column(db.Text)
