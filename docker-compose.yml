@@ -17,16 +17,14 @@ services:
 
   web:
     container_name: 'web_app'
+    restart: always
     env_file:
       - .env
-    command:
-      bash -c "python3 /flask_project/manage.py runserver"
     build:
       dockerfile: Dockerfile
       context: .
     environment:
       PYTHONUNBUFFERED: 1
-      PY_AUTORELOAD: true
     volumes:
       - ./flask_project:/flask_project
     links:
