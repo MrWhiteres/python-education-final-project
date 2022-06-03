@@ -1,7 +1,8 @@
 """
 Module is responsible for displaying on the main page.
 """
-from .database.models.film import Film, FilmSchema
+from .database.models.film import Film
+from .database.shemes.schema import FilmSchema
 
 
 class MovieView:
@@ -10,7 +11,7 @@ class MovieView:
     """
 
     @staticmethod
-    def show_all_film(page, paginate=10, filters=None, genres=[]):
+    def show_all_film(page: int, filters: str, genres: list, paginate: int):
         """
         Function displays all films without sorting but with the possibility of filtering.
         :param page:
@@ -19,7 +20,7 @@ class MovieView:
         :param genres:
         :return:
         """
-        films = Film.query.paginate(page, paginate, False).items
+        films: list = Film.query.paginate(page, paginate, False).items
 
         if filters == "genre":
             films = Film.query.filter(Film.id_genre in genres)
@@ -34,7 +35,7 @@ class MovieView:
         return film_schema.dump(films)
 
     @staticmethod
-    def sorted_films(page, sorted_method, paginate=10, filters=None, genres=[]):
+    def sorted_films(page: int, filters: str, sorted_method: str, genres: list, paginate: int):
         """
         Function works on different options for sorting movies.
         :param page:
@@ -47,26 +48,25 @@ class MovieView:
         if sorted_method not in ['rating', 'date']:
             return 'Invalid sorted method.'
 
-        if not filters:
-            films = Film.query.order_by(Film.rating.desc()).paginate(page, paginate, False).items \
-                if sorted_method == 'rating' else \
-                Film.query.order_by(Film.release_date.desc()).paginate(page, paginate, False).items
+        films = Film.query.order_by(Film.rating.desc()).paginate(page, paginate, False).items \
+            if sorted_method == 'rating' else \
+            Film.query.order_by(Film.release_date.desc()).paginate(page, paginate, False).items
 
-        elif filters == "genre":
+        if filters == "genre":
             films = Film.query.filter(Film.id_genre in genres) \
                 .order_by(Film.rating.desc()).paginate(page, paginate, False).items \
                 if sorted_method == 'rating' else \
                 Film.query.filter(Film.id_genre in genres). \
                     order_by(Film.release_date.desc()).paginate(page, paginate, False).items
 
-        elif filters == "date":
+        if filters == "date":
             films = Film.query.filter(Film.release_date) \
                 .order_by(Film.rating.desc()).paginate(page, paginate, False).items \
                 if sorted_method == 'rating' else \
                 Film.query.filter(Film.release_date). \
                     order_by(Film.release_date.desc()).paginate(page, paginate, False).items
 
-        elif filters == "director":
+        if filters == "director":
             films = Film.query.filter(Film.id_director). \
                 order_by(Film.rating.desc()).paginate(page, paginate, False).items \
                 if sorted_method == 'rating' else \

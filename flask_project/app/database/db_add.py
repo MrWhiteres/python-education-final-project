@@ -9,6 +9,7 @@ def add_inform():
     function that performs the role of filling data.
     :return:
     """
+    from .. import db
     from .models import role
     role_1 = role.Role('user')
     role_2 = role.Role('admin')

@@ -13,3 +13,5 @@ url_db = f"postgresql://{environ['POSTGRES_USER']}:" \
 SQLALCHEMY_DATABASE_URI = url_db
 SQLALCHEMY_TRACK_MODIFICATION = False
 SECRET_KEY = environ['SECRET_KEY']
+WTF_CSRF_CHECK_DEFAULT = False
+WTF_CSRF_ENABLED = False
