@@ -5,6 +5,7 @@ from flask_login import UserMixin
 
 from . import db, BaseModel
 from ...app import login_manager
+from .role import Role
 
 
 class User(db.Model, BaseModel, UserMixin):
