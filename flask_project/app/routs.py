@@ -6,8 +6,9 @@ from flask_login import login_required, logout_user, current_user
 from flask_paginate import get_page_parameter
 
 from .app import app
-from .contoller import init_add_film, general_page_views, init_del_film, init_login_user, \
-    init_add_user, search_films
+from .contoller.film_controller import film_view, init_add_film, init_del_film, edit_film
+from .contoller.general_page_controller import general_page_views, search_films
+from .contoller.user_controller import init_login_user, init_add_user, profile_user
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -18,6 +19,18 @@ def general_page(pk=1):
         return jsonify(Film=general_page_views("GET", page))
     if request.method == "POST":
         return jsonify(Film=general_page_views("POST", page))
+
+
+@app.route("/film/<int:id_film>", methods=["GET"])
+def film_views(id_film):
+    """
+    Route takes the id of the movies and checks it if there is a movie with this id if it exists,
+     returns information about this movie if not,
+      returns the answer that the movie is not in the database
+    :param id_film:
+    :return:
+    """
+    return jsonify(Film=film_view(id_film))
 
 
 @app.route('/add_film', methods=["GET", "POST"])
@@ -77,13 +90,44 @@ def logout():
     logout_user()
     return jsonify(answer=f"Come back, {user}")
 
+
 @app.route('/search', methods=["GET", "POST"])
 @app.route('/search/<search>', methods=["GET", "POST"])
 def search(search):
+    """
+    The route is designed to work with a search for a complete or partial match of films.
+    :param search:
+    :return:
+    """
     if request.method == "GET":
         return jsonify(answer=search_films("GET", search))
     if request.method == "POST":
         return jsonify(answer=search_films('POST'))
+
+
+@app.route('/profile/<int:profile_id>', methods=["GET", "POST"])
+@login_required
+def profiles(profile_id):
+    """Router adds the ability to allow the user to view information about their account."""
+    if request.method == "GET":
+        return jsonify({'User Profile': profile_user("GET", current_user, profile_id)})
+    if request.method == "POST":
+        return jsonify({'User Profile': profile_user("POST", current_user)})
+
+
+@app.route("/edit/film/<int:film_id>", methods=["POST"])
+@login_required
+def edit(film_id):
+    """
+    Route takes a movie ID And if there is such a movie,
+     it allows you to change the data about this movie
+      with subsequent recording of changes in the database
+    :param film_id:
+    :return:
+    """
+    if request.method == "POST":
+        return jsonify(Film=edit_film(current_user, film_id))
+
 
 @app.after_request
 def redirect_to_signin(response):

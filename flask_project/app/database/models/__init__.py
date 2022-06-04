@@ -1,6 +1,7 @@
 """
 Module contains extensions of the model.
 """
+
 from ...database import db, marsh
 
 
@@ -32,3 +33,11 @@ class BaseModel:
         :return:
         """
         db.session.rollback()
+
+    @staticmethod
+    def update_from_db():
+        """
+        Function saves new data.
+        :return:
+        """
+        db.session.commit()
