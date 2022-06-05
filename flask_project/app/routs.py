@@ -41,9 +41,9 @@ def add_film():
     :return:
     """
     if request.method == 'GET':
-        return jsonify(answer=init_add_film(method='GET', user_id=current_user.id))
+        return jsonify(answer=init_add_film(method='GET', user=current_user))
     if request.method == 'POST':
-        return jsonify(answer=init_add_film(method='POST', user_id=current_user.id))
+        return jsonify(answer=init_add_film(method='POST', user=current_user))
 
 
 @app.route('/del_films', methods=['GET', 'POST'])

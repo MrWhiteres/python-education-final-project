@@ -4,9 +4,10 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 from ..database.forms.film_form import FilmForm, FilmEditForm
 from ..database.models.film import Film
+from ..logger import logger
 
 
-def init_add_film(method: str, user_id: int):
+def init_add_film(method: str, user: object):
     """
     Function is responsible for adding new movies to the site.
     :param method:
@@ -17,16 +18,16 @@ def init_add_film(method: str, user_id: int):
         movie_title: str = request.form.get('movie_title')
         release_date: int = request.form.get('release_date')
         rating: int = request.form.get('rating')
-# movie_title, release_date, rating, poster=None, description=None, id_director=None, id_user=None, id_genre=None
+    # movie_title, release_date, rating, poster=None, description=None, id_director=None, id_user=None, id_genre=None
     if method == 'POST':
         data = request.get_json()
         movie_title: str = data["movie_title"]
         release_date: int = data["release_date"]
         rating: int = data["rating"]
-    return add_film(movie_title, release_date, rating, user_id, data)
+    return add_film(movie_title, release_date, rating, user, data)
 
 
-def add_film(movie_title: str, release_date: int, rating: int, user_id: int, data: dict) -> object:
+def add_film(movie_title: str, release_date: int, rating: int, user: object, data: dict) -> object:
     """
     Function allows you to validate the correctness of the data for creating a new movie and create a new movie.
     :param movie_title:
@@ -41,12 +42,17 @@ def add_film(movie_title: str, release_date: int, rating: int, user_id: int, dat
     form_input = ImmutableMultiDict(data)
     if FilmForm(form_input).validate():
         try:
-            new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, id_user=user_id)
+            new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, id_user=user.id)
             new_film.save_to_db()
+            logger.log("New_Film", f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
             return f"'{new_film.movie_title}' created."
+
         except IntegrityError or PendingRollbackError:
+            logger.log("Error", f"Add new film '{new_film.movie_title}' failed, film already exists.")
             new_film.rollback()
             return f"user '{new_film.movie_title}, {Film.query.all()}' already exist."
+
+    logger.log("Error", "Incorrect data was entered when adding a new movie.")
     return 'Incorrect data'
 
 
@@ -59,12 +65,11 @@ def init_del_film(method, users):
     """
     if method == 'GET':
         movie_title = request.form.get('movie_title')  # movie_title = 'A team'
-        return del_film(title=movie_title, user=users)
 
     if method == 'POST':
         data = request.get_json()
         movie_title: str = data["movie_title"]
-        return del_film(title=movie_title, user=users)
+    return del_film(title=movie_title, user=users)
 
 
 def del_film(title: str, user: object):
@@ -80,9 +85,15 @@ def del_film(title: str, user: object):
         old_film = Film.query.filter(Film.movie_title == title).first()
         if old_film.id_user == user.id or user.role.role_name == 'admin':
             old_film.delete_from_db()
+            logger.log("Del_Film", f"User - '{user.nickname}', del film - '{title}'")
             return f"'{title}' delete."
+
+        logger.log("Error", f"User - '{user.nickname}', try del film - '{title}'")
         return f"You can`t delete this film '{title}'."
+
     except AttributeError:
+
+        logger.log("Error", f"User - '{user.nickname}', try del film - '{title}', not found")
         return f"Film '{title}' not found."
 
 
@@ -99,7 +110,7 @@ def edit_film(user, film_id):
         return 'Film not Found'
     if film.id_user != user.id and user.role.role_name != 'admin':
         return f'{film.id_user}{user.id}{user.role.role_name}'
-
+    film_title = film.movie_title
     data = request.get_json()
     form_input = ImmutableMultiDict(data)
     if FilmEditForm(form_input).validate():
@@ -113,7 +124,10 @@ def edit_film(user, film_id):
         film.release_date = data['release_date'] if data["release_date"] else film.release_date
 
         film.update_from_db()
+        logger.log("Edit_Film", f"User - '{user.nickname}', changed movie info '<{film_title}, film id {film.id}>'.")
         return 'Movies have been successfully modified'
+
+    logger.log("Error", f"User - '{user.nickname}', try changed movie info '<{film_title}, incorrect data entered.")
     return 'Incorrect data'
 
 

@@ -13,3 +13,5 @@ log:
 # Initial website performance check.
 check:
 	curl -X GET  http://127.0.0.1
+exec:
+	docker exec -it web_app bash
