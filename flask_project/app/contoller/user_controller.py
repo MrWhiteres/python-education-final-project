@@ -14,22 +14,7 @@ from ..database.models.user import User
 from ..logger import logger
 
 
-def profile_user(method, users, profile_id=None):
-    """
-    Function to return this user data.
-    :param method:
-    :param users:
-    :param profile_id:
-    :return:
-    """
-    if method == "POST":
-        data = request.get_json()
-        profile_id = data['profile_id']
-        return profiles(users, profile_id)
-    return profiles(users, profile_id)
-
-
-def profiles(users, profile_id):
+def profile(users: object, profile_id: int):
     """
     Function checks the user id and his role then returns the data.
     :param users:
@@ -38,21 +23,20 @@ def profiles(users, profile_id):
     """
     if users.id == profile_id or users.role.role_name == 'admin':
         user = User.query.filter_by(id=profile_id).first()
-        logger.log("Show", f"<{users.nickname}/{users.role.role_name}>,"
-                           f" show profile user<'{user.nickname}, user if - {profile_id}'>.")
+        logger.info(f"<{users.nickname}/{users.role.role_name}>,"
+                    f" show profile user<'{user.nickname}, user if - {profile_id}'>.")
         return {'Nickname': user.nickname, 'Last Name': user.last_name,
                 'First Name': user.first_name, 'Email': user.email, 'Role': user.role.role_name}
 
-    logger.log("Error", f"The user - '{users.nickname}' tried to view information inaccessible to him.")
+    logger.error(f"The user - '{users.nickname}' tried to view information inaccessible to him.")
     return "There's nothing here."
 
 
-def init_add_user():
+def init_add_user(data: dict):
     """
     Function collects information and then passes it to create a new user.
     :return:
     """
-    data = request.get_json(force=True)
     nickname: str = data["nickname"]
     last_name: str = data["last_name"]
     first_name: str = data["first_name"]
@@ -66,6 +50,7 @@ def add_user(nickname: str, last_name: str, first_name: str,
              email: str, password: str, password2: str, data: dict) -> object:
     """
     Function is responsible for adding and checking new users.
+    :param data:
     :param nickname:
     :param last_name:
     :param first_name:
@@ -86,24 +71,23 @@ def add_user(nickname: str, last_name: str, first_name: str,
             new_user: object = User(nickname=nickname, last_name=last_name,
                                     first_name=first_name, email=email, password=hash_pwd)
             new_user.save_to_db()
-            logger.log("New_User", f"New user add to db - '{new_user.nickname}'.")
+            logger.info(f"New user add to db - '{new_user.nickname}'.")
             return f"'{new_user.nickname}' created."
 
         except (IntegrityError, PendingRollbackError):
-            logger.log("Error", f"Registration of user '{new_user.nickname}' failed, user already exists.")
+            logger.error(f"Registration of user '{new_user.nickname}' failed, user already exists.")
             new_user.rollback()
             return f"user '{new_user.nickname}, {User.query.all()}' already exist."
 
-    logger.log("Error", "An error occurred while registering a new user, incorrect data.")
+    logger.error(f"An error occurred while registering a new user, incorrect data.- {nickname}")
     return 'Incorrect data'
 
 
-def init_login_user():
+def init_login_user(data: dict):
     """
     Function collects user information and then passes i to check if such a user is in the database.
     :return:
     """
-    data = request.get_json()
     email: str = data["email"]
     password: str = data["password"]
     form_input = ImmutableMultiDict(data)
@@ -131,8 +115,8 @@ def login_users(email: str, password: str):
 
     if user and check_password_hash(user.password, password):
         login_user(user)
-        logger.log('login_User', f"User logged in '{user.nickname}'")
+        logger.info(f"User logged in '{user.nickname}'")
         return f"Welcome back, '{user}'"
 
-    logger.log("Error", f"An attempt was made to log in to a user account - '{user.nickname if user else None}'.")
+    logger.error(f"An attempt was made to log in to a user account - '{user.nickname if user else None}'.")
     return 'bad password.'  # flash('bad password')
