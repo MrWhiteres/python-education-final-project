@@ -59,7 +59,7 @@ def add_user(nickname: str, last_name: str, first_name: str,
     :param password2:
     :return:
     """
-    if not (nickname or last_name or first_name or email or password or password2):
+    if not nickname or not last_name or not first_name or not email or not password or not password2:
         return 'Please, fill all fields!'  # flash('Please, fill all fields!')
     if password != password2:
         return 'Passwords are not equal!'  # flash('Passwords are not equal!')
@@ -77,7 +77,7 @@ def add_user(nickname: str, last_name: str, first_name: str,
         except (IntegrityError, PendingRollbackError):
             logger.error(f"Registration of user '{new_user.nickname}' failed, user already exists.")
             new_user.rollback()
-            return f"user '{new_user.nickname}, {User.query.all()}' already exist."
+            return f"User already exist."
 
     logger.error(f"An error occurred while registering a new user, incorrect data.- {nickname}")
     return 'Incorrect data'
@@ -116,7 +116,7 @@ def login_users(email: str, password: str):
     if user and check_password_hash(user.password, password):
         login_user(user)
         logger.info(f"User logged in '{user.nickname}'")
-        return f"Welcome back, '{user}'"
+        return f"Welcome back."
 
     logger.error(f"An attempt was made to log in to a user account - '{user.nickname if user else None}'.")
-    return 'bad password.'  # flash('bad password')
+    return f'Incorrect data'  # flash('bad password')

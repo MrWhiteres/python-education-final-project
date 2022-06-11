@@ -30,6 +30,14 @@ film_model = api.model('Film Model', {
     'id_director': fields.Integer(default=None)
 })
 
+film_edit_model = api.model('Films edit model', {
+    "movie_title": fields.String(default=None),
+    "release_date": fields.Date(default=None),
+    "rating": fields.Integer(default=None),
+    "poster": fields.String(default=None),
+    "description": fields.String(default=None),
+})
+
 del_film_model = api.model('Film dell', {
     'movie_title': fields.String(default=None)
 })

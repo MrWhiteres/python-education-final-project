@@ -9,7 +9,8 @@ from .app import api
 from .contoller.film_controller import film_view, init_add_film, init_del_film, edit_film
 from .contoller.general_page_controller import general_page_views, search_films
 from .contoller.user_controller import init_login_user, profile, init_add_user
-from .model_view import registration_user_model, login_user_model, film_model, del_film_model, general_page_model
+from .model_view import registration_user_model, login_user_model, film_model, del_film_model, general_page_model, \
+    film_edit_model
 
 
 @api.route("/<int:pk>")
@@ -51,11 +52,12 @@ class FilmView(Resource):
         return jsonify(Film=film_view(id_film))
 
 
-@login_required
 @api.route('/add_film')
 @api.expect(film_model)
 class AddFilm(Resource):
+
     @staticmethod
+    @login_required
     @api.doc(model=film_model)
     def post():
         """
@@ -73,11 +75,12 @@ class AddFilm(Resource):
         return jsonify(answer=init_add_film(data=api.payload, user=current_user))
 
 
-@login_required
 @api.route('/del_films')
 @api.expect(del_film_model)
 class DelFilm(Resource):
+
     @staticmethod
+    @login_required
     @api.doc(model=del_film_model)
     def post():
         """
@@ -86,7 +89,7 @@ class DelFilm(Resource):
         :param movie_title:
         :return:
         """
-        return jsonify(answer=init_del_film(api.payload, current_user))
+        return jsonify(answer=init_del_film(data=api.payload, users=current_user))
 
 
 @api.route('/login')
@@ -97,7 +100,6 @@ class LoginUser(Resource):
     def post():
         """
         Route for user authorization on the site if it is in the database.
-
         :param email:
         :param password:
         :return:
@@ -124,26 +126,18 @@ class Registration(Resource):
         return jsonify(answer=init_add_user(api.payload))
 
 
-@login_required
 @api.route('/logout')
 class LogoutUser(Resource):
-    user: str = current_user.nickname if current_user else 'Unknown'
 
-    def get(self):
+    @login_required
+    @staticmethod
+    def post():
         """
         Route to log out of user account.
         :return:
         """
         logout_user()
-        return jsonify(answer=f"Come back, {self.user}")
-
-    def post(self):
-        """
-        Route to log out of user account.
-        :return:
-        """
-        logout_user()
-        return jsonify(answer=f"Come back, {self.user}")
+        return jsonify(answer="Logout successful.")
 
 
 @api.route('/search/<search>')
@@ -159,10 +153,11 @@ class Search(Resource):
         return jsonify(answer=search_films(search))
 
 
-@login_required
 @api.route('/profile/<int:profile_id>')
 class Profile(Resource):
+
     @staticmethod
+    @login_required
     def get(profile_id):
         """
         User profile route.
@@ -173,20 +168,21 @@ class Profile(Resource):
         return jsonify({'User Profile': profile(current_user, profile_id)})
 
 
-@login_required
-@api.route("/edit/film/<int:film_id>")
-@api.expect(film_model)
+@api.route("/edit/film/<string:film_title>")
+@api.expect(film_edit_model)
 class Edit(Resource):
+
     @staticmethod
-    @api.doc(film_model)
-    def post(film_id):
+    @login_required
+    @api.doc(film_edit_model)
+    def post(film_title):
         """
         Route fo edit films.
         Route takes a movie ID And if there is such a movie,
          it allows you to change the data about this movie
           with subsequent recording of changes in the database
 
-        :param film_id:
+        :param film_title:
         :param movie_title:
         :param release_date (data type 'YYYY/MM/DD'):
         :param rating:
@@ -196,7 +192,7 @@ class Edit(Resource):
         :param id_director:
         :return:
         """
-        return jsonify(Film=edit_film(current_user, film_id))
+        return jsonify(Film=edit_film(api.payload, current_user, film_title))
 
 # @project.after_request
 # class RedirectToSignin(Resource):

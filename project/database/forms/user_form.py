@@ -1,4 +1,4 @@
-from wtforms.fields.html5 import EmailField
+from wtforms.fields import EmailField
 
 from . import FlaskForm
 from . import StringField, PasswordField, validators

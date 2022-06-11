@@ -42,3 +42,10 @@ def load_user(user_id):
     :return:
     """
     return User.query.get(user_id)
+
+@login_manager.unauthorized_handler
+def unauthorized_handler():
+    """
+    If user not log in
+    """
+    return 'Unauthorized', 401
