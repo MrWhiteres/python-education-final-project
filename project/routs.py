@@ -12,7 +12,6 @@ from .contoller.user_controller import init_login_user, profile, init_add_user
 from .model_view import registration_user_model, login_user_model, film_model, del_film_model, general_page_model
 
 
-@api.route("/")  # +
 @api.route("/<int:pk>")
 @api.expect(general_page_model)
 class GeneralPage(Resource):
@@ -36,7 +35,7 @@ class GeneralPage(Resource):
         return jsonify(Film=general_page_views(api.payload, pk))
 
 
-@api.route("/film/<int:id_film>")  # +
+@api.route("/film/<int:id_film>")
 class FilmView(Resource):
     @staticmethod
     def get(id_film):
@@ -55,7 +54,7 @@ class FilmView(Resource):
 @login_required
 @api.route('/add_film')
 @api.expect(film_model)
-class AddFilm(Resource):  # +
+class AddFilm(Resource):
     @staticmethod
     @api.doc(model=film_model)
     def post():
@@ -75,7 +74,7 @@ class AddFilm(Resource):  # +
 
 
 @login_required
-@api.route('/del_films')  # +
+@api.route('/del_films')
 @api.expect(del_film_model)
 class DelFilm(Resource):
     @staticmethod
@@ -90,7 +89,7 @@ class DelFilm(Resource):
         return jsonify(answer=init_del_film(api.payload, current_user))
 
 
-@api.route('/login')  # +
+@api.route('/login')
 @api.expect(login_user_model)
 class LoginUser(Resource):
     @staticmethod
@@ -106,7 +105,7 @@ class LoginUser(Resource):
         return jsonify(answer=init_login_user(api.payload))
 
 
-@api.route('/registration')  # +
+@api.route('/registration')
 class Registration(Resource):
     @staticmethod
     @api.expect(registration_user_model)
@@ -125,7 +124,7 @@ class Registration(Resource):
         return jsonify(answer=init_add_user(api.payload))
 
 
-@login_required  # +
+@login_required
 @api.route('/logout')
 class LogoutUser(Resource):
     user: str = current_user.nickname if current_user else 'Unknown'
@@ -147,7 +146,7 @@ class LogoutUser(Resource):
         return jsonify(answer=f"Come back, {self.user}")
 
 
-@api.route('/search/<search>')  # +
+@api.route('/search/<search>')
 class Search(Resource):
     @staticmethod
     def get(search):
@@ -199,7 +198,7 @@ class Edit(Resource):
         """
         return jsonify(Film=edit_film(current_user, film_id))
 
-# @app.after_request
+# @project.after_request
 # class RedirectToSignin(Resource):
 #     """
 #     If the user tries to go to an address that is available only to registered users, this method will intercept him
