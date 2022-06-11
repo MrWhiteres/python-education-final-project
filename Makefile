@@ -1,9 +1,9 @@
 # Command starts docker container in silent mode without logs.
 up:
-	docker-compose up -d
+	docker-compose --env-file .env up -d
 # Command starts docker container in reconstruction mode.
 build:
-	docker-compose up --build
+	docker-compose --env-file .env up --build
 # Command disables all currently running docker containers.
 down:
 	docker-compose down
