@@ -1,6 +1,8 @@
+from sqlalchemy import update
 from sqlalchemy.exc import PendingRollbackError, IntegrityError
 from werkzeug.datastructures import ImmutableMultiDict
 
+from ..database import db
 from ..database.forms.film_form import FilmForm, FilmEditForm
 from ..database.models.film import Film
 from ..logger import logger
@@ -16,10 +18,10 @@ def init_add_film(data: dict, user: object):
     movie_title: str = data["movie_title"]
     release_date: int = data["release_date"]
     rating: int = data["rating"]
-    poster: str = data['poster']
-    description: str = data['description']
-    genre: int = data['genre']
-    id_director: int = data['id_director']
+    poster: str = data['poster'] if data['poster'] else None
+    description: str = data['description'] if data['description'] else None
+    genre: int = data['genre'] if data['genre'] else None
+    id_director: int = data['id_director'] if data['id_director'] else None
     return add_film(movie_title, release_date, rating, poster, description, genre, id_director, user, data)
 
 
@@ -44,12 +46,8 @@ def add_film(movie_title: str, release_date: int, rating: int, poster: str, desc
     form_input = ImmutableMultiDict(data)
     if FilmForm(form_input).validate():
         try:
-            poster = poster if poster else None
-            description = description if description else None
-            genre = genre if genre != 0 else []
-            id_director = id_director if id_director != 0 else None
             new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, poster=poster,
-                            description=description, id_genre=genre, id_director=id_director, id_user=user.id)
+                            description=description, id_director=id_director, id_user=user.id)
             new_film.save_to_db()
             logger.info(f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
             return f"'{new_film.movie_title}' created."
@@ -57,7 +55,7 @@ def add_film(movie_title: str, release_date: int, rating: int, poster: str, desc
         except IntegrityError or PendingRollbackError:
             logger.error(f"Add new film '{new_film.movie_title}' failed, film already exists.")
             new_film.rollback()
-            return f"user '{new_film.movie_title}, {Film.query.all()}' already exist."
+            return f"Film already exist."
 
     logger.error("Incorrect data was entered when adding a new movie.")
     return 'Incorrect data'
@@ -99,7 +97,7 @@ def del_film(title: str, user: object):
         return f"Film '{title}' not found."
 
 
-def edit_film(data: dict, user: object, film_id: int):
+def edit_film(data: dict, user: object, film_title: str):
     """
     Function allows you to edit the movie.
     :param data:
@@ -107,24 +105,17 @@ def edit_film(data: dict, user: object, film_id: int):
     :param film_id:
     :return:
     """
-    film = Film.query.filter_by(id=film_id).first()
+    film = Film.query.filter_by(movie_title=film_title).first()
     if not film:
         return 'Film not Found'
     if film.id_user != user.id and user.role.role_name != 'admin':
-        return f'You cannot edit this film: {film.id_user}{user.id}{user.role.role_name}'
+        return f'You cannot edit this film.'
     film_title = film.movie_title
     form_input = ImmutableMultiDict(data)
     if FilmEditForm(form_input).validate():
-        film.id_director = data["id_director"] if data[
-            "id_director"] else film.id_director if film.id_director else None
-        film.description = data["description"] if data["description"] else film.description
-        film.movie_title = data["movie_title"] if data["movie_title"] else film.movie_title
-        film.poster = data["poster"] if data["poster"] else film.poster if film.poster else None
-        film.rating = data["rating"] if data["rating"] else film.rating
-        film.genre = data['genre'] if data["genre"] else film.genre if film.id_genre else None
-        film.release_date = data['release_date'] if data["release_date"] else film.release_date
-
-        film.update_from_db()
+        stmt = update(Film).where(Film.movie_title == film_title).values(**data)
+        db.session.execute(stmt)
+        db.session.commit()
         logger.info(f"User - '{user.nickname}', changed movie info '<{film_title}, film id {film.id}>'.")
         return 'Movies have been successfully modified'
 

@@ -24,4 +24,4 @@ db.init_app(app)
 migrate.init_app(app, db, directory='./migration')
 api.init_app(app)
 
-from . import routs
+from project import routs

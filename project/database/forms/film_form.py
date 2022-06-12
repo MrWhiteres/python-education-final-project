@@ -16,4 +16,3 @@ class SearchForm(FlaskForm):
 class FilmEditForm(FlaskForm):
     release_date = DateField('Release date', format='%Y/%m/%d', validators=[validators.Optional()])
     rating = IntegerField("Rating", validators=[validators.InputRequired(), validators.NumberRange(min=-1, max=10)])
-    id_director = IntegerField("Rating", validators=[validators.InputRequired(), validators.NumberRange(min=1)])

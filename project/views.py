@@ -72,7 +72,7 @@ class MovieView:
                 .order_by(Film.rating.desc()) \
                 .paginate(page, paginate, False).items \
                 if sorted_method == 'rating' else \
-                Film.query.filter(Film.id_genre)\
+                Film.query.filter(Film.id_genre) \
                     .filter(Genre.genre_name == genres) \
                     .order_by(Film.release_date.desc()) \
                     .paginate(page, paginate, False).items
@@ -83,7 +83,7 @@ class MovieView:
                 .paginate(page, paginate, False).items \
                 if sorted_method == 'rating' else \
                 Film.query.filter(Film.release_date >= min_date) \
-                    .filter(Film.release_date <= max_date)\
+                    .filter(Film.release_date <= max_date) \
                     .order_by(Film.release_date.desc()) \
                     .paginate(page, paginate, False).items
 

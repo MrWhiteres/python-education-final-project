@@ -30,7 +30,9 @@ class Film(db.Model, BaseModel):
     id_genre = db.relationship("Genre", secondary=genre_film)
 
     def __init__(self, movie_title, release_date, rating, poster=None, description=None, id_director=None, id_user=None,
-                 id_genre=[]):
+                 id_genre=None):
+        if id_genre is None:
+            id_genre = []
         self.movie_title = movie_title
         self.release_date = release_date
         self.rating = rating
