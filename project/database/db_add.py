@@ -20,6 +20,7 @@ def add_inform():
     try:
         engine.execute("INSERT INTO movies.public.role(role_name) VALUES ('user'), ('admin')")
         engine.execute("INSERT INTO movies.public.genre(genre_name) VALUES ('unknown')")
+        engine.execute("INSERT INTO movies.public.director(first_name, last_name) VALUES ('unknown', 'unknown')")
     except (IntegrityError, PendingRollbackError):
         print('Error')
 
