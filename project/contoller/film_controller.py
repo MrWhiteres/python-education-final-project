@@ -5,6 +5,8 @@ from werkzeug.datastructures import ImmutableMultiDict
 from ..database import db
 from ..database.forms.film_form import FilmForm, FilmEditForm
 from ..database.models.film import Film
+from ..database.models.genre import Genre
+from ..database.models.genre_film import genre_film
 from ..logger import logger
 
 
@@ -20,12 +22,12 @@ def init_add_film(data: dict, user: object):
     rating: int = data["rating"]
     poster: str = data['poster'] if data['poster'] else None
     description: str = data['description'] if data['description'] else None
-    genre: int = data['genre'] if data['genre'] else None
+    genre: list = data['genre'] if data['genre'] else None
     id_director: int = data['id_director'] if data['id_director'] else None
     return add_film(movie_title, release_date, rating, poster, description, genre, id_director, user, data)
 
 
-def add_film(movie_title: str, release_date: int, rating: int, poster: str, description: str, genre: int,
+def add_film(movie_title: str, release_date: int, rating: int, poster: str, description: str, genre: list,
              id_director: int, user: object, data: dict) -> object:
     """
         Function allows you to validate the correctness of the data for creating a new movie and create a new movie.
@@ -37,28 +39,50 @@ def add_film(movie_title: str, release_date: int, rating: int, poster: str, desc
         :param movie_title:
         :param release_date:
         :param rating:
-        :param user_id:
         :param data:
         :return:
     """
-    if not (movie_title or release_date or rating):
-        return 'Please, fill all fields!'
-    form_input = ImmutableMultiDict(data)
-    if FilmForm(form_input).validate():
-        try:
-            new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, poster=poster,
-                            description=description, id_director=id_director, id_user=user.id)
-            new_film.save_to_db()
-            logger.info(f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
-            return f"'{new_film.movie_title}' created."
+    if (movie_title or release_date or rating or poster or description or id_director) and len(genre) >= 1:
+        form_input = ImmutableMultiDict(data)
+        if FilmForm(form_input).validate():
+            try:
+                genre_set = get_genre(genre_list=genre)
+                new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, poster=poster,
+                                description=description, id_director=id_director, id_user=user.id)
+                new_film.save_to_db()
+                logger.info(f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
+                add_genre(film_id=new_film.id, genre_list=genre_set)
+                return f"'{new_film.movie_title}' created."
 
-        except IntegrityError or PendingRollbackError:
-            logger.error(f"Add new film '{new_film.movie_title}' failed, film already exists.")
-            new_film.rollback()
-            return f"Film already exist."
+            except IntegrityError or PendingRollbackError:
+                logger.error(f"Add new film '{new_film.movie_title}' failed, film already exists.")
+                new_film.rollback()
+                return f"Film already exist."
 
-    logger.error("Incorrect data was entered when adding a new movie.")
-    return 'Incorrect data'
+        logger.error("Incorrect data was entered when adding a new movie.")
+        return 'Incorrect data'
+    return 'Please, fill all fields!'
+
+
+def get_genre(genre_list: list) -> set:
+    """The function returns a list of records from the database if they are there."""
+    genre_id_set = set()
+    for i in genre_list:
+        genre = Genre.query.filter_by(genre_name=i).first()
+        if genre:
+            genre_id_set.add(genre)
+        else:
+            genre = Genre.query.filter_by(genre_name='unknown').first()
+            genre_id_set.add(genre)
+    return genre_id_set
+
+
+def add_genre(film_id: int, genre_list: set):
+    """The function adds genres to the movie"""
+    for i in genre_list:
+        answer = genre_film.insert().values(film_id=film_id, genre_id=i.id)
+        db.session.execute(answer)
+        db.session.commit()
 
 
 def init_del_film(data: dict, users: object):

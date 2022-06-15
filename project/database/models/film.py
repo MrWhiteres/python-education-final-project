@@ -29,10 +29,7 @@ class Film(db.Model, BaseModel):
 
     id_genre = db.relationship("Genre", secondary=genre_film)
 
-    def __init__(self, movie_title, release_date, rating, poster=None, description=None, id_director=None, id_user=None,
-                 id_genre=None):
-        if id_genre is None:
-            id_genre = []
+    def __init__(self, movie_title, release_date, rating, poster=None, description=None, id_director=None, id_user=None):
         self.movie_title = movie_title
         self.release_date = release_date
         self.rating = rating
@@ -40,7 +37,6 @@ class Film(db.Model, BaseModel):
         self.description = description
         self.id_director = id_director
         self.id_user = id_user
-        self.id_genre = id_genre
 
     def __repr__(self):
         return f'<cls-Film: {self.id}/{self.movie_title}/{self.id_user}>'

@@ -15,3 +15,5 @@ check:
 	curl -X GET  http://127.0.0.1
 exec:
 	docker exec -it web_app bash
+add:
+	python project/database/db_add.py add_inform
