@@ -19,6 +19,7 @@ def add_inform():
          f"{environ['POSTGRES_PASSWORD']}@:5432/{environ['POSTGRES_DB']}").connect()
     try:
         engine.execute("INSERT INTO movies.public.role(role_name) VALUES ('user'), ('admin')")
+        engine.execute("INSERT INTO movies.public.genre(genre_name) VALUES ('unknown')")
     except (IntegrityError, PendingRollbackError):
         print('Error')
 

@@ -17,7 +17,7 @@ login_user_model = api.model('User login', {
 })
 
 genre_list = api.model('GenreList', {
-    'genre_id': fields.Integer(default=None)
+    'genre_id': fields.String(default=None)
 })
 
 film_model = api.model('Film Model', {

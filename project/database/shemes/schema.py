@@ -11,6 +11,8 @@ from ..models.user import User
 class FilmSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = Film
+        include_relationship = True
+        load_instance = True
 
 
 class UserSchema(SQLAlchemyAutoSchema):
