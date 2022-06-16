@@ -1,8 +1,6 @@
 """
 Module stores the object model films.
 """
-from datetime import datetime
-
 from . import BaseModel, db, marsh
 from .genre_film import genre_film
 from .genre import Genre
@@ -16,7 +14,7 @@ class Film(db.Model, BaseModel):
     """
     id = db.Column(db.Integer, primary_key=True, unique=True)
     movie_title = db.Column(db.String(255), nullable=False, unique=True)
-    release_date = db.Column(db.DateTime, default=datetime.utcnow)
+    release_date = db.Column(db.Date)
     rating = db.Column(db.Integer, nullable=False)
     poster = db.Column(db.Text)
     description = db.Column(db.Text)

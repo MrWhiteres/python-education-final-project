@@ -4,6 +4,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 
 from ..database import db
 from ..database.forms.film_form import FilmForm, FilmEditForm
+from ..database.models.director import Director
 from ..database.models.film import Film
 from ..database.models.genre import Genre
 from ..database.models.genre_film import genre_film
@@ -20,10 +21,10 @@ def init_add_film(data: dict, user: object):
     movie_title: str = data["movie_title"]
     release_date: int = data["release_date"]
     rating: int = data["rating"]
-    poster: str = data['poster'] if data['poster'] else None
-    description: str = data['description'] if data['description'] else None
-    genre: list = data['genre'] if data['genre'] else None
-    id_director: int = data['id_director'] if data['id_director'] else None
+    poster: str = data['poster']
+    description: str = data['description']
+    genre: list = data['genre']
+    id_director: int = data['id_director']
     return add_film(movie_title, release_date, rating, poster, description, genre, id_director, user, data)
 
 
@@ -47,8 +48,10 @@ def add_film(movie_title: str, release_date: int, rating: int, poster: str, desc
         if FilmForm(form_input).validate():
             try:
                 genre_set = get_genre(genre_list=genre)
+                director = get_director(id_director)
+
                 new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, poster=poster,
-                                description=description, id_director=id_director, id_user=user.id)
+                                description=description, id_director=director, id_user=user.id)
                 new_film.save_to_db()
                 logger.info(f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
                 add_genre(film_id=new_film.id, genre_list=genre_set)
@@ -64,16 +67,21 @@ def add_film(movie_title: str, release_date: int, rating: int, poster: str, desc
     return 'Please, fill all fields!'
 
 
+def get_director(id_director):
+    director = Director.query.filter_by(id=id_director).first()
+    if not director:
+        director = Director.query.filter_by(last_name='unknown', first_name='unknown').first()
+    return director.id
+
+
 def get_genre(genre_list: list) -> set:
     """The function returns a list of records from the database if they are there."""
     genre_id_set = set()
     for i in genre_list:
         genre = Genre.query.filter_by(genre_name=i).first()
-        if genre:
-            genre_id_set.add(genre)
-        else:
+        if not genre:
             genre = Genre.query.filter_by(genre_name='unknown').first()
-            genre_id_set.add(genre)
+        genre_id_set.add(genre)
     return genre_id_set
 
 
@@ -156,11 +164,31 @@ def film_view(film_id: int):
     """
     film = Film.query.filter_by(id=film_id).first()
     if film:
-        return {'Description': film.description if film.description else "Unknown",
-                'Movie title': film.movie_title,
-                'Poster': film.poster if film.poster else "Unknown",
-                'Rating': film.rating,
-                'Genre': film.id_genre if film.id_genre else "Unknown",
-                'Release date': film.release_date,
-                'Director': [film.director.last_name, film.director.first_name] if film.id_director else 'Unknown'}
+        list_genre = get_name_genre(film.id)
+        return ({'Description': film.description,
+                 'Movie title': film.movie_title,
+                 'Poster': film.poster,
+                 'Rating': film.rating,
+                 'Genre': list_genre,
+                 'Release date': film.release_date,
+                 'Director': [film.director.last_name, film.director.first_name]
+                 if film.director.first_name != "unknown"
+                 else 'Unknown'})
     return "Film Not found"
+
+
+def get_name_genre(film_id: int) -> str:
+    """The method returns a string with movie genres."""
+    film_genre = db.session.query(genre_film).filter_by(film_id=film_id).all()
+    genre_list = set()
+    for i in film_genre:
+        genre = Genre.query.filter_by(id=i.genre_id).first()
+        genre_list.add(genre.genre_name)
+    if len(genre_list) == 1 and 'unknown' in genre_list:
+        genre_list = 'Unknown'
+    elif len(genre_list) == 1 and "unknown" not in genre_list:
+        genre_list = "".join(genre_list)
+    elif len(genre_list) > 1:
+        genre_list.discard('unknown')
+        genre_list = ', '.join(list(genre_list))
+    return genre_list
