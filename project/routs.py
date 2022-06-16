@@ -1,7 +1,7 @@
 """
 Module implements all the paths of the address bar in the flask application.
 """
-from flask import jsonify
+from flask import jsonify, make_response
 from flask_login import login_required, logout_user, current_user
 from flask_restx import Resource
 
@@ -9,10 +9,13 @@ from .app import api
 from .contoller.film_controller import film_view, init_add_film, init_del_film, edit_film
 from .contoller.general_page_controller import general_page_views, search_films
 from .contoller.user_controller import init_login_user, profile, init_add_user
+from .database.db_repository.film_repository import FilmRepository
+from .database.db_repository.user_repository import UserRepository
 from .model_view import registration_user_model, login_user_model, film_model, del_film_model, general_page_model, \
     film_edit_model
 
 
+@api.route("/")
 @api.route("/<int:pk>")
 @api.expect(general_page_model)
 class GeneralPage(Resource):
@@ -23,9 +26,9 @@ class GeneralPage(Resource):
         Function using a view displays movies on the main page.
         :param filters [genre/date/director/""]:
         :param sorted_methods [rating/date/""]:
-        :param genres [default=0(not genres)]:
+        :param genres [str]:
         :param paginate [default 10]:
-        :param director_id [default=0(not director)]:
+        :param director_id [int]:
         if filters == date
         :param min_date [default=""(not min_date)] data type 'YYYY/MM/DD':
         and
@@ -33,7 +36,8 @@ class GeneralPage(Resource):
         :param pk:
         :return:
         """
-        return jsonify(Film=general_page_views(api.payload, pk))
+        body, code = general_page_views(api.payload, pk, FilmRepository)
+        return make_response(jsonify(Film=body), code)
 
 
 @api.route("/film/<int:id_film>")
@@ -49,7 +53,8 @@ class FilmView(Resource):
             :param id_film:
             :return:
         """
-        return jsonify(Film=film_view(id_film))
+        body, code = film_view(id_film, FilmRepository)
+        return make_response(jsonify(Film=body), code)
 
 
 @api.route('/add_film')
@@ -72,7 +77,8 @@ class AddFilm(Resource):
         :param id_director:
         :return:
         """
-        return jsonify(answer=init_add_film(data=api.payload, user=current_user))
+        body, code = init_add_film(data=api.payload, user=current_user, repository=FilmRepository)
+        return make_response(jsonify(answer=body), code)
 
 
 @api.route('/del_films')
@@ -85,11 +91,11 @@ class DelFilm(Resource):
     def post():
         """
         Route to remove movies from the site.
-
         :param movie_title:
         :return:
         """
-        return jsonify(answer=init_del_film(data=api.payload, users=current_user))
+        body, code = init_del_film(data=api.payload, users=current_user, repository=FilmRepository)
+        return make_response(jsonify(answer=body), code)
 
 
 @api.route('/login')
@@ -104,7 +110,8 @@ class LoginUser(Resource):
         :param password:
         :return:
         """
-        return jsonify(answer=init_login_user(api.payload))
+        body, code = init_login_user(api.payload, UserRepository)
+        return make_response(jsonify(answer=body), code)
 
 
 @api.route('/registration')
@@ -123,21 +130,22 @@ class Registration(Resource):
         :param password2:
         :return:
         """
-        return jsonify(answer=init_add_user(api.payload))
+        body, code = init_add_user(api.payload, UserRepository)
+        return make_response(jsonify(answer=body), code)
 
 
 @api.route('/logout')
 class LogoutUser(Resource):
 
-    @login_required
     @staticmethod
+    @login_required
     def post():
         """
         Route to log out of user account.
         :return:
         """
         logout_user()
-        return jsonify(answer="Logout successful.")
+        return make_response(jsonify(answer="Logout successful."))
 
 
 @api.route('/search/<search>')
@@ -150,7 +158,8 @@ class Search(Resource):
         :param search:
         :return:
         """
-        return jsonify(answer=search_films(search))
+        body, code = search_films(search, FilmRepository)
+        return make_response(jsonify(answer=body), code)
 
 
 @api.route('/profile/<int:profile_id>')
@@ -165,7 +174,8 @@ class Profile(Resource):
         :param profile_id:
         :return:
         """
-        return jsonify({'User Profile': profile(current_user, profile_id)})
+        body, code = profile(current_user, profile_id, UserRepository)
+        return make_response(jsonify({'User Profile': body}), code)
 
 
 @api.route("/edit/film/<string:film_title>")
@@ -192,19 +202,5 @@ class Edit(Resource):
         :param id_director:
         :return:
         """
-        return jsonify(Film=edit_film(api.payload, current_user, film_title))
-
-# @project.after_request
-# class RedirectToSignin(Resource):
-#     """
-#     If the user tries to go to an address that is available only to registered users, this method will intercept him
-#     and redirect him to a page with the possibility of authorization after the user is successfully authorized,
-#     he is redirected to the page where he was.
-#     :param response:
-#     :return:
-#     """
-#     @staticmethod
-#     def get(response):
-#         if response.status_code == 401:
-#             return redirect(url_for("login") + '?next=' + request.url)
-#         return response
+        body, code = edit_film(api.payload, current_user, film_title, FilmRepository)
+        return make_response(jsonify(Film=body), code)
