@@ -16,9 +16,6 @@ login_user_model = api.model('User login', {
     'password': fields.String(default=None),
 })
 
-genre_list = api.model('GenreList', {
-    'genre_id': fields.String(default=None)
-})
 
 film_model = api.model('Film Model', {
     'movie_title': fields.String(default=None),
@@ -26,7 +23,7 @@ film_model = api.model('Film Model', {
     'rating': fields.Integer(default=None),
     'poster': fields.String(default=None),
     'description': fields.String(default=None),
-    'genre': fields.List(fields.Nested(genre_list), default=None),
+    'genre': fields.List(fields.String(default=None), default=None),
     'id_director': fields.Integer(default=None)
 })
 
@@ -42,12 +39,13 @@ del_film_model = api.model('Film dell', {
     'movie_title': fields.String(default=None)
 })
 
+
 general_page_model = api.model('General Page', {
-    "filters": fields.String(default=None),
-    "sorted_methods": fields.String(default=None),
-    "genres": fields.Integer(default=None),
+    "filters": fields.List(fields.String(default=None), default=None),
+    "sorted_methods": fields.List(fields.String(default=None), default=None),
+    "genres": fields.List(fields.String(default=None), default=None),
     "paginate": fields.Integer(default=None),
-    "director_id": fields.Integer(default=None),
+    "director_id": fields.List(fields.Integer(default=None), default=None),
     "min_date": fields.Date(default=None),
     "max_date": fields.Date(default=None),
 })

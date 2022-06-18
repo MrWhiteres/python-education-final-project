@@ -1,194 +1,110 @@
-from sqlalchemy import update
 from sqlalchemy.exc import PendingRollbackError, IntegrityError
 from werkzeug.datastructures import ImmutableMultiDict
 
-from ..database import db
+from ..database.db_repository.film_repository import AbstractFilmRepository
 from ..database.forms.film_form import FilmForm, FilmEditForm
-from ..database.models.director import Director
-from ..database.models.film import Film
-from ..database.models.genre import Genre
-from ..database.models.genre_film import genre_film
+from ..database.models.user import User
 from ..logger import logger
 
 
-def init_add_film(data: dict, user: object):
+def init_add_film(data: dict, user: User, repository: AbstractFilmRepository) -> tuple[str, int]:
     """
     Function is responsible for adding new movies to the site.
+    :param repository:
     :param user:
     :param data:
     :return:
     """
-    movie_title: str = data["movie_title"]
-    release_date: int = data["release_date"]
-    rating: int = data["rating"]
-    poster: str = data['poster']
-    description: str = data['description']
     genre: list = data['genre']
-    id_director: int = data['id_director']
-    return add_film(movie_title, release_date, rating, poster, description, genre, id_director, user, data)
+    del data["genre"]
+    data['id_director'] = repository.get_director(data['id_director'])
+    data['user_id'] = user.id
 
-
-def add_film(movie_title: str, release_date: int, rating: int, poster: str, description: str, genre: list,
-             id_director: int, user: object, data: dict) -> object:
-    """
-        Function allows you to validate the correctness of the data for creating a new movie and create a new movie.
-        :param user:
-        :param id_director:
-        :param genre:
-        :param description:
-        :param poster:
-        :param movie_title:
-        :param release_date:
-        :param rating:
-        :param data:
-        :return:
-    """
-    if (movie_title or release_date or rating or poster or description or id_director) and len(genre) >= 1:
+    if (data["movie_title"] or data["release_date"] or data["rating"] or data['poster'] or data['description'] or data[
+        'id_director']) and len(genre) >= 1:
         form_input = ImmutableMultiDict(data)
         if FilmForm(form_input).validate():
             try:
-                genre_set = get_genre(genre_list=genre)
-                director = get_director(id_director)
-
-                new_film = Film(movie_title=movie_title, release_date=release_date, rating=rating, poster=poster,
-                                description=description, id_director=director, id_user=user.id)
-                new_film.save_to_db()
+                genre_set = repository.get_genre(genre_list=genre)
+                new_film = repository.add_new_film(**data)
                 logger.info(f"User - '{user.nickname}', add new film to db - '{new_film.movie_title}'")
-                add_genre(film_id=new_film.id, genre_list=genre_set)
-                return f"'{new_film.movie_title}' created."
+                repository.add_genre(film_id=new_film.id, genre_list=genre_set)
+                return f"'{new_film.movie_title}' created.", 201
 
             except IntegrityError or PendingRollbackError:
-                logger.error(f"Add new film '{new_film.movie_title}' failed, film already exists.")
-                new_film.rollback()
-                return f"Film already exist."
+                logger.error(f"Add new film failed, film already exists.")
+                return "Film already exist.", 409
 
         logger.error("Incorrect data was entered when adding a new movie.")
-        return 'Incorrect data'
-    return 'Please, fill all fields!'
+        return 'Incorrect data', 409
+    return 'Please, fill all fields!', 409
 
 
-def get_director(id_director):
-    director = Director.query.filter_by(id=id_director).first()
-    if not director:
-        director = Director.query.filter_by(last_name='unknown', first_name='unknown').first()
-    return director.id
-
-
-def get_genre(genre_list: list) -> set:
-    """The function returns a list of records from the database if they are there."""
-    genre_id_set = set()
-    for i in genre_list:
-        genre = Genre.query.filter_by(genre_name=i).first()
-        if not genre:
-            genre = Genre.query.filter_by(genre_name='unknown').first()
-        genre_id_set.add(genre)
-    return genre_id_set
-
-
-def add_genre(film_id: int, genre_list: set):
-    """The function adds genres to the movie"""
-    for i in genre_list:
-        answer = genre_film.insert().values(film_id=film_id, genre_id=i.id)
-        db.session.execute(answer)
-        db.session.commit()
-
-
-def init_del_film(data: dict, users: object):
+def init_del_film(data: dict, users: User, repository: AbstractFilmRepository) -> tuple[str, int]:
     """
     Function takes the data and passes it to the subsequent removal of the movie.
+    :param repository:
     :param data:
     :param users:
     :return:
     """
-    movie_title: str = data["movie_title"]
-    return del_film(title=movie_title, user=users)
-
-
-def del_film(title: str, user: object):
-    """
-    Function is responsible for removing movies from the site.
-    :param title:
-    :param user:
-    :return:
-    """
-    if not (title or user):
-        return 'Please, fill all fields!'  # flash('Please, fill all fields!')
+    data["users"] = users
+    if not data["movie_title"] and not data["users"]:
+        return 'Please, fill all fields!', 409
     try:
-        old_film = Film.query.filter(Film.movie_title == title).first()
-        if old_film.id_user == user.id or user.role.role_name == 'admin':
-            old_film.delete_from_db()
-            logger.info("Del_Film", f"User - '{user.nickname}', del film - '{title}'")
-            return f"'{title}' delete."
+        old_film = repository.get_film_by_title(data["movie_title"])
+        if old_film.id_user == data["users"].id or data["users"].role.role_name == 'admin':
+            repository.del_film(old_film)
+            logger.info("Del_Film", f"User - '{data['users'].nickname}', del film - '{data['movie_title']}'")
+            return f"'{data['movie_title']}' delete.", 200
 
-        logger.error(f"User - '{user.nickname}', try del film - '{title}'")
-        return f"You can`t delete this film '{title}'."
+        logger.error(f"User - '{data['users'].nickname}', try del film - '{data['movie_title']}'")
+        return f"You can`t delete this film '{data['movie_title']}'.", 403
 
     except AttributeError:
 
-        logger.error(f"User - '{user.nickname}', try del film - '{title}', not found")
-        return f"Film '{title}' not found."
+        logger.error(f"User - '{data['users'].nickname}', try del film - '{data['movie_title']}', not found")
+        return f"Film '{data['movie_title']}' not found.", 204
 
 
-def edit_film(data: dict, user: object, film_title: str):
+def edit_film(data: dict, user: User, film_title: str, repository: AbstractFilmRepository) -> tuple:
     """
     Function allows you to edit the movie.
+    :param repository:
+    :param film_title:
     :param data:
     :param user:
-    :param film_id:
     :return:
     """
-    film = Film.query.filter_by(movie_title=film_title).first()
+    film = repository.get_film_by_title(film_title)
     if not film:
-        return 'Film not Found'
+        return "Film Not found", 204
+
     if film.id_user != user.id and user.role.role_name != 'admin':
-        return f'You cannot edit this film.'
+        return f'You cannot edit this film.', 403
+
     film_title = film.movie_title
     form_input = ImmutableMultiDict(data)
+
     if FilmEditForm(form_input).validate():
-        stmt = update(Film).where(Film.movie_title == film_title).values(**data)
-        db.session.execute(stmt)
-        db.session.commit()
+        repository.edit_film(title=film_title, data=data)
         logger.info(f"User - '{user.nickname}', changed movie info '<{film_title}, film id {film.id}>'.")
-        return 'Movies have been successfully modified'
+        return 'Movies have been successfully modified', 200
 
     logger.error(f"User - '{user.nickname}', try changed movie info '<{film_title}, incorrect data entered.")
-    return 'Incorrect data'
+    return 'Incorrect data', 409
 
 
-def film_view(film_id: int):
+def film_view(film_id: int, repository: AbstractFilmRepository) -> tuple:
     """
     Function allows you to view all information about the movie.
+    :param repository:
     :
     :param film_id:
     :return:
     """
-    film = Film.query.filter_by(id=film_id).first()
+    film = repository.get_film_by_id(film_id=film_id)
     if film:
-        list_genre = get_name_genre(film.id)
-        return ({'Description': film.description,
-                 'Movie title': film.movie_title,
-                 'Poster': film.poster,
-                 'Rating': film.rating,
-                 'Genre': list_genre,
-                 'Release date': film.release_date,
-                 'Director': [film.director.last_name, film.director.first_name]
-                 if film.director.first_name != "unknown"
-                 else 'Unknown'})
-    return "Film Not found"
-
-
-def get_name_genre(film_id: int) -> str:
-    """The method returns a string with movie genres."""
-    film_genre = db.session.query(genre_film).filter_by(film_id=film_id).all()
-    genre_list = set()
-    for i in film_genre:
-        genre = Genre.query.filter_by(id=i.genre_id).first()
-        genre_list.add(genre.genre_name)
-    if len(genre_list) == 1 and 'unknown' in genre_list:
-        genre_list = 'Unknown'
-    elif len(genre_list) == 1 and "unknown" not in genre_list:
-        genre_list = "".join(genre_list)
-    elif len(genre_list) > 1:
-        genre_list.discard('unknown')
-        genre_list = ', '.join(list(genre_list))
-    return genre_list
+        list_genre = repository.get_name_genre(film.id)
+        return repository.return_film_view(film=film, list_genre=list_genre), 200
+    return "Film Not found", 204
