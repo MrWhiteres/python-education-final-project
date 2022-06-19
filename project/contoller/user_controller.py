@@ -1,6 +1,7 @@
 """
 Module is a controller initializer for operations with users.
 """
+from typing import Tuple, Dict, Any
 
 from flask_login import login_user
 from sqlalchemy.exc import PendingRollbackError, IntegrityError
@@ -15,7 +16,8 @@ from ..database.models.user import User
 from ..logger import logger
 
 
-def profile(users: User, profile_id: int, repository: AbstractUserRepository) -> dict[str, str] | tuple[str, int]:
+def profile(users: User, profile_id: int, repository: AbstractUserRepository) -> tuple[dict[str, Any], int] | tuple[
+    str, int]:
     """
     Function checks the user id and his role then returns the data.
     :param repository:
@@ -29,7 +31,7 @@ def profile(users: User, profile_id: int, repository: AbstractUserRepository) ->
             logger.info(f"<{users.nickname}/{users.role.role_name}>,"
                         f" show profile user<'{user.nickname}, user if - {profile_id}'>.")
             return {'Nickname': user.nickname, 'Last Name': user.last_name,
-                    'First Name': user.first_name, 'Email': user.email, 'Role': user.role.role_name}
+                    'First Name': user.first_name, 'Email': user.email, 'Role': user.role.role_name}, 200
         return "User not found.", 204
 
     logger.error(f"The user - '{users.nickname}' tried to view information inaccessible to him.")
