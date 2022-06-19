@@ -27,6 +27,10 @@ class AbstractUserRepository(ABC):
     def rollback_user(self, user: User):
         """ABC method for UserRepository.rollback_user"""
 
+    @abstractmethod
+    def check_admin(self, user: User):
+        """ABC method for UserRepository.check_admin"""
+
 
 class UserRepository(AbstractRepository, AbstractUserRepository):
     """
@@ -77,3 +81,7 @@ class UserRepository(AbstractRepository, AbstractUserRepository):
         :return:
         """
         return User.query.filter_by(email=user_email).first()
+
+    @staticmethod
+    def check_admin(user: User):
+        return True if user.role.role_name == 'admin' else False

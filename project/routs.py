@@ -6,7 +6,7 @@ from flask_login import login_required, logout_user, current_user
 from flask_restx import Resource
 
 from .app import api
-from .contoller.film_controller import film_view, init_add_film, init_del_film, edit_film
+from .contoller.film_controller import film_view, init_add_film, init_del_film, edit_film, del_film_director
 from .contoller.general_page_controller import general_page_views, search_films
 from .contoller.user_controller import init_login_user, profile, init_add_user
 from .database.db_repository.film_repository import FilmRepository
@@ -204,3 +204,18 @@ class Edit(Resource):
         """
         body, code = edit_film(api.payload, current_user, film_title, FilmRepository)
         return make_response(jsonify(Film=body), code)
+
+@api.route('/del_director/<int:id>')
+@api.expect(del_film_model)
+class DelFilm(Resource):
+
+    @staticmethod
+    @login_required
+    def post(id):
+        """
+        Route to remove movies from the site.
+        :param movie_title:
+        :return:
+        """
+        body, code = del_film_director(user=current_user, id_director=id, repository_film=FilmRepository, repository_user=UserRepository)
+        return make_response(jsonify(answer=body), code)

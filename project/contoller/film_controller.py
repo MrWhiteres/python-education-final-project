@@ -2,6 +2,7 @@ from sqlalchemy.exc import PendingRollbackError, IntegrityError
 from werkzeug.datastructures import ImmutableMultiDict
 
 from ..database.db_repository.film_repository import AbstractFilmRepository
+from ..database.db_repository.user_repository import AbstractUserRepository
 from ..database.forms.film_form import FilmForm, FilmEditForm
 from ..database.models.user import User
 from ..logger import logger
@@ -17,7 +18,7 @@ def init_add_film(data: dict, user: User, repository: AbstractFilmRepository) ->
     """
     genre: list = data['genre']
     del data["genre"]
-    data['id_director'] = repository.get_director(data['id_director'])
+    data['id_director'] = repository.get_director(data['id_director']).id
     data['user_id'] = user.id
 
     if (data["movie_title"] or data["release_date"] or data["rating"] or data['poster'] or data['description'] or data[
@@ -108,3 +109,19 @@ def film_view(film_id: int, repository: AbstractFilmRepository) -> tuple:
         list_genre = repository.get_name_genre(film.id)
         return repository.return_film_view(film=film, list_genre=list_genre), 200
     return "Film Not found", 204
+
+
+def del_film_director(user: User, id_director: int, repository_film: AbstractFilmRepository,
+                      repository_user: AbstractUserRepository) -> tuple[str, int]:
+    user = repository_user.check_admin(user)
+    if not user:
+        return "You cannot delete director films.", 403
+
+    director = repository_film.get_director(id_director)
+    if director.first_name == "unknown" and director.last_name == "unknown":
+        return "Director not found", 204
+
+    answer = repository_film.del_director(id_director)
+    if answer:
+        return "Director deleted", 200
+    return 'Error', 409

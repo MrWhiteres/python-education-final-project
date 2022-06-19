@@ -18,11 +18,13 @@ def add_admin():
     """
     admin_info = dict(nickname=environ["NICKNAME"], email=environ["EMAIL"], first_name=environ["FIRST_NAME"],
                       last_name=environ["LAST_NAME"], password=environ["PASSWORD"], password2=environ["PASSWORD2"])
-    try:
-        requests.session().post(f"{environ['BASE_URL']}/registration", json=admin_info)
-        engine.execute(
-            f"UPDATE movies.public.user set id_role = (select id from role where role_name='admin') where nickname='{environ['NICKNAME']}'")
-    except (IntegrityError, PendingRollbackError):
+
+    response = requests.session().post(f"{environ['BASE_URL']}/registration", json=admin_info)
+    engine.execute(
+        f"UPDATE movies.public.user set id_role = (select id from role where role_name='admin') where nickname='{environ['NICKNAME']}'")
+    if response.status_code == 201:
+        print("Administrator created.")
+    else:
         print('Administrator already exists with this data')
 
 
