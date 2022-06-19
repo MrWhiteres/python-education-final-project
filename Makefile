@@ -13,6 +13,11 @@ log:
 # The command allows you to use the terminal in a container with a web application
 exec:
 	docker exec -it web_app bash
+
+
 # Must be used the first time the application is launched to add primary data. RUN only after starting the web container.
 add:
 	python project/database/db_add.py add_inform
+# Add new Admin in site
+admin:
+	python project/database/db_add_admin.py add_admin

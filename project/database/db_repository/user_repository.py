@@ -2,6 +2,7 @@
 Module for working with a table in the user database.
 """
 from . import AbstractRepository, ABC, abstractmethod
+from ..models.role import Role
 from ..models.user import User
 
 
@@ -9,6 +10,7 @@ class AbstractUserRepository(ABC):
     """
     Abstract User Repository.
     """
+
     @abstractmethod
     def profile_user(self, profile_id):
         """ABC method for UserRepository.profile_user"""
@@ -24,7 +26,6 @@ class AbstractUserRepository(ABC):
     @abstractmethod
     def rollback_user(self, user: User):
         """ABC method for UserRepository.rollback_user"""
-
 
 
 class UserRepository(AbstractRepository, AbstractUserRepository):
@@ -44,8 +45,9 @@ class UserRepository(AbstractRepository, AbstractUserRepository):
         :param password:
         :return:
         """
+        role: Role = Role.query.filter(Role.role_name == 'user').first()
         user: User = User(nickname=nickname, last_name=last_name,
-                            first_name=first_name, email=email, password=password)
+                          first_name=first_name, email=email, password=password, id_role=role.id)
         user.save_to_db()
         return user
 

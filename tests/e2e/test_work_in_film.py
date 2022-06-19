@@ -1,89 +1,130 @@
-import requests
 import pytest
+import requests
+from faker import Faker
 
-base_url = 'http://127.0.0.1'
-base_add_film = "http://127.0.0.1/add_film"
-base_del_film = "http://127.0.0.1/del_films"
-base_edit_film = "http://127.0.0.1/edit/film/"
-base_view_film = "http://127.0.0.1/film/"
-
-session_1 = requests.session()
-session_2 = requests.session()
-session_1.post(f"{base_url}/registration",
-               json=dict(nickname="Tester", last_name="Test_name", first_name="Test_last_name",
-                         email="tester@test.com", password="test_password",
-                         password2="test_password"))
-session_2.post(f"{base_url}/registration",
-               json=dict(nickname="Testername2", last_name="Test_name", first_name="Test_last_name",
-                         email="testergmail@test.com", password="some_password",
-                         password2="some_password"))
-session_1.post(f'{base_url}/login',
-               json=dict(email="tester@test.com",
-                         password="test_password"),
-               allow_redirects=True)
-session_2.post(f'{base_url}/login',
-               json=dict(email="testergmail@test.com",
-                         password="some_password"),
-               allow_redirects=True)
+from tests.e2e import base_url, base_add_film, base_del_film, base_edit_film, engine
 
 
-def test_add_film():
-    film_good = dict(movie_title='Test film',
-                     release_date='2020/02/02',
-                     rating=1,
-                     poster='Some Poster',
-                     description='Some description',
-                     genre=0,
-                     id_director=[])
-    film_bad_title = dict(movie_title='',
-                          release_date='2020/02/02',
-                          rating=1,
-                          poster='Some Poster',
-                          description='Some description',
-                          genre=0,
-                          id_director=0)
-    film_bad_data = dict(movie_title='Test film',
-                         release_date='2020-02-02',
-                         rating=1,
-                         poster='Some Poster',
-                         description='Some description',
-                         genre=0,
-                         id_director=0)
-
-    response_s1 = session_1.post(base_add_film, json=film_good)
-    assert response_s1.json() == {"answer": f"'{film_good['movie_title']}' created."}
-    response_s2 = session_2.post(base_add_film, json=film_good)
-    assert response_s2.json() == {"answer": "Film already exist."}
-    response_s1 = session_1.post(base_add_film, json=film_bad_title)
-    assert response_s1.json() == {"answer": 'Incorrect data'}
-    response_s1 = session_1.post(base_add_film, json=film_bad_data)
-    assert response_s1.json() == {"answer": 'Incorrect data'}
+def delete_all_data_in_db():
+    engine.execute("DELETE FROM movies.public.genre_film")
+    engine.execute("DELETE FROM movies.public.film")
+    engine.execute("DELETE FROM movies.public.user")
 
 
-def test_del_film():
-    good_title = dict(movie_title="Test film")
+@pytest.fixture
+def fake():
+    return Faker()
+
+
+@pytest.fixture
+def fake_user_1(fake):
+    password = fake.password()
+    return dict(nickname=fake.unique.first_name(), email=fake.unique.email(), first_name=fake.unique.first_name(),
+                last_name=fake.unique.last_name(), password=password, password2=password)
+
+
+@pytest.fixture
+def fake_user_2(fake):
+    password = fake.password()
+    return dict(nickname=fake.unique.first_name(), email=fake.unique.email(), first_name=fake.unique.first_name(),
+                last_name=fake.unique.last_name(), password=password, password2=password)
+
+
+@pytest.fixture
+def fake_film(fake):
+    while True:
+        movie_title = fake.unique.company()
+        if len(movie_title) <= 20:
+            break
+
+    release_date = "-".join(fake.unique.date().split('/'))
+    genre = [fake.unique.first_name() for _ in range(fake.random_digit_not_null())]
+    id_director = fake.randomize_nb_elements(number=1000, ge=True, min=2)
+    description = fake.paragraph(nb_sentences=fake.random_digit_not_null())
+    poster = fake.url()
+    yield dict(movie_title=movie_title, rating=fake.random_digit_not_null(), release_date=release_date,
+               genre=genre, id_director=id_director, description=description, poster=poster)
+
+
+@pytest.fixture
+def session_1(fake_user_1):
+    session = requests.session()
+    session.post(f"{base_url}/registration", json=fake_user_1)
+    session.post(f'{base_url}/login',
+                 json=dict(email=fake_user_1["email"], password=fake_user_1["password"]))
+    print(fake_user_1)
+    yield session
+
+
+@pytest.fixture
+def session_2(fake_user_2):
+    session = requests.session()
+    session.post(f"{base_url}/registration", json=fake_user_2)
+    session.post(f'{base_url}/login',
+                 json=dict(email=fake_user_2["email"], password=fake_user_2["password"]))
+    print(fake_user_2)
+    yield session
+
+
+def test_add_film(session_1, session_2, fake_film):
+    user_1 = session_1
+    user_2 = session_2
+    film_good = dict.copy(fake_film)
+    film_bad_title = dict.copy(fake_film)
+    film_bad_title["movie_title"] = ''
+    film_bad_data = dict.copy(fake_film)
+    film_bad_data["release_date"] = '2020/02/02'
+
+    response_s1 = user_1.post(base_add_film, json=film_good)
+    assert response_s1.status_code == 201
+    response_s2 = user_2.post(base_add_film, json=film_good)
+    assert response_s2.status_code == 409
+    user_1.post(base_del_film, json=dict(movie_title=film_good["movie_title"]))
+    response_s1 = user_1.post(base_add_film, json=film_bad_title)
+    assert response_s1.status_code == 409
+    response_s1 = user_2.post(base_add_film, json=film_bad_data)
+    assert response_s1.status_code == 409
+
+    delete_all_data_in_db()
+
+
+def test_del_film(session_1, session_2, fake_film):
+    user_1 = session_1
+    user_2 = session_2
+
+    user_1.post(base_add_film, json=fake_film)
+
+    good_title = dict(movie_title=fake_film["movie_title"])
     bad_title = dict(movie_title="Test")
-    response_s1 = session_1.post(base_del_film, json=bad_title)
-    response_s2 = session_2.post(base_del_film, json=good_title)
-    response_s1_2 = session_1.post(base_del_film, json=good_title)
-    response_s2_2 = session_2.post(base_del_film, json=good_title)
-    assert response_s1.json() == {"answer": f"Film '{bad_title['movie_title']}' not found."}
-    assert response_s2.json() == {"answer": f"You can`t delete this film '{good_title['movie_title']}'."}
-    assert response_s1_2.json() == {"answer": f"'{good_title['movie_title']}' delete."}
-    assert response_s2_2.json() == {"answer": f"Film '{good_title['movie_title']}' not found."}
+
+    response_s1 = user_1.post(base_del_film, json=bad_title)
+    response_s2 = user_2.post(base_del_film, json=good_title)
+    response_s1_2 = user_1.post(base_del_film, json=good_title)
+    response_s2_2 = user_2.post(base_del_film, json=good_title)
+
+    assert response_s1.status_code == 204
+    assert response_s2.status_code == 403
+    assert response_s1_2.status_code == 200
+    assert response_s2_2.status_code == 204
+
+    delete_all_data_in_db()
 
 
-def test_edit_film():
-    film_good = dict(movie_title="Test film", release_date="2020/02/02", rating=3, poster="Some Poster",
-                     description="Some description", genre=None, id_director=None)
-    session_1.post(base_add_film, json=film_good)
+def test_edit_film(session_1, session_2, fake_film):
+    user_1 = session_1
+    user_2 = session_2
+    film_good = fake_film
+    user_1.post(base_add_film, json=film_good)
     old_title = film_good['movie_title']
-    film_good['movie_title'] = 'Test Film 2'
+    film_good['movie_title'] = Faker().first_name()
     del film_good['genre']
-    response_1 = session_1.post(f"{base_edit_film}/{old_title}", json=film_good)
-    assert response_1.json() == {'Film': 'Movies have been successfully modified'}
-    response_2 = session_2.post(f"{base_edit_film}/{film_good['movie_title']}", json=film_good)
-    assert response_2.json() == {"Film": "You cannot edit this film."}
-    response_3 = session_1.post(f"{base_edit_film}/A_team", json=film_good)
-    assert response_3.json() == {'Film': 'Film not Found'}
-    session_1.post(f"{base_del_film}", json=film_good)
+    del film_good['id_director']
+    response_1 = user_1.post(f"{base_edit_film}/{old_title}", json=film_good)
+    assert response_1.status_code == 200
+    response_2 = user_2.post(f"{base_edit_film}/{film_good['movie_title']}", json=film_good)
+    assert response_2.status_code == 403
+    response_3 = user_1.post(f"{base_edit_film}/A_team", json=film_good)
+    assert response_3.status_code == 204
+    user_1.post(f"{base_del_film}", json=film_good)
+
+    delete_all_data_in_db()

@@ -8,7 +8,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_debugtoolbar import DebugToolbarExtension
 
 from .config import BaseConfig
-from .database import db, migrate
+from .database import db, migrate, marsh
 from .logger import InterceptHandler
 
 app = Flask(__name__)
@@ -23,5 +23,10 @@ csrf = CSRFProtect(app)
 db.init_app(app)
 migrate.init_app(app, db, directory='./migration')
 api.init_app(app)
+
+from .database.models import director, user, film, genre, genre_film, role
+
+marsh.init_app(app)
+db.create_all(app=app)
 
 from . import routs

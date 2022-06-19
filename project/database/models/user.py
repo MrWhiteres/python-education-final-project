@@ -22,7 +22,7 @@ class User(db.Model, BaseModel, UserMixin):
     id_role = db.Column(db.Integer, db.ForeignKey("role.id"))
     role = db.relationship("Role")
 
-    def __init__(self, nickname, last_name, first_name, email, password, id_role=1):
+    def __init__(self, nickname, last_name, first_name, email, password, id_role):
         self.nickname = nickname
         self.last_name = last_name
         self.first_name = first_name

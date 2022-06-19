@@ -49,7 +49,7 @@ def init_del_film(data: dict, users: User, repository: AbstractFilmRepository) -
     :return:
     """
     data["users"] = users
-    if not data["movie_title"] and not data["users"]:
+    if not data["movie_title"]:
         return 'Please, fill all fields!', 409
     try:
         old_film = repository.get_film_by_title(data["movie_title"])

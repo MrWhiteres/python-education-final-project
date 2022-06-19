@@ -1,12 +1,16 @@
 import pytest
 import requests
 
-base_url = "http://127.0.0.1"
-session = requests.session()
+from tests.e2e import base_url
 
 
-def test_general_page():
-    data = dict(filters="", sorted_methods='', genres=0, paginate=0, director_id=0, min_date='', max_date='')
-    response = requests.post(f'{base_url}/1', json=data)
-    print(response.json())
-    assert response.json() == dict(Film=response.json()['Film'])
+@pytest.fixture
+def base_data():
+    yield base_url
+
+
+def test_general_page(base_data):
+    data = dict(filters=[], sorted_methods=[], genres=[], paginate=0, director_id=[],
+                min_date="", max_date="")
+    response = requests.post(f'{base_data}', json=data)
+    assert response.status_code in (204, 200)

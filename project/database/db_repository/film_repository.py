@@ -199,15 +199,15 @@ class FilmRepository(AbstractRepository, AbstractFilmRepository):
         :param list_genre:
         :return:
         """
-        return ({'Description': film.description,
-                 'Movie title': film.movie_title,
+        return {'Movie title': film.movie_title,
+                'Description': film.description,
                  'Poster': film.poster,
                  'Rating': film.rating,
                  'Genre': list_genre,
                  'Release date': film.release_date,
                  'Director': " ".join([film.director.last_name, film.director.first_name])
                  if film.director.first_name != "unknown"
-                 else 'Unknown'})
+                 else 'Unknown'}
 
     @staticmethod
     def add_filter_in_command(command: str, filters: dict) -> str:

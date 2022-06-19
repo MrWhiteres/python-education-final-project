@@ -10,8 +10,8 @@ class Director(db.Model, BaseModel):
     Class is the schema for the director model.
     """
     id = db.Column(db.Integer, primary_key=True, unique=True)
-    first_name = db.Column(db.String(255), nullable=False)
-    last_name = db.Column(db.String(255), nullable=False)
+    first_name = db.Column(db.String(255), nullable=False, unique=True)
+    last_name = db.Column(db.String(255), nullable=False, unique=True)
 
     def __init__(self, first_name, last_name):
         self.first_name = first_name
