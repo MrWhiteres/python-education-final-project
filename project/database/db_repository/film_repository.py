@@ -1,7 +1,7 @@
 """
 Module for working with a table in the film database.
 """
-from sqlalchemy import update, or_
+from sqlalchemy import update, or_, delete
 
 from . import AbstractRepository, ABC, abstractmethod
 from .. import db
@@ -70,6 +70,10 @@ class AbstractFilmRepository(ABC):
     def add_filter_in_command(self, command, filters):
         """ABC method for FilmRepository.add_filter_in_command"""
 
+    @abstractmethod
+    def del_director(self, director: Director):
+        """ABC method for FilmRepository.del_director"""
+
 
 class FilmRepository(AbstractRepository, AbstractFilmRepository):
     """
@@ -97,7 +101,7 @@ class FilmRepository(AbstractRepository, AbstractFilmRepository):
         director = Director.query.filter_by(id=id_director).first()
         if not director:
             director = Director.query.filter_by(last_name='unknown', first_name='unknown').first()
-        return director.id
+        return director
 
     @staticmethod
     def add_genre(film_id: int, genre_list: set):
@@ -229,7 +233,7 @@ class FilmRepository(AbstractRepository, AbstractFilmRepository):
         if "director" in filters and filters["director"]:
             director_list = []
             for i in filters["director"]:
-                director_list.append(f'Film.id_director == {i}')
+                director_list.append(f'Film.id_director == {i.id}')
             command += f".filter(or_({','.join(director_list)}))"
 
         return command
@@ -263,3 +267,18 @@ class FilmRepository(AbstractRepository, AbstractFilmRepository):
         command += f".paginate({page}, {paginate}, {False}).items"
         command = "Film.query" + command
         return eval(command)
+
+    @staticmethod
+    def del_director(director: int):
+        director_new = Director.query.filter_by(last_name='unknown', first_name='unknown').first()
+        try:
+            stmt = update(Film).where(Film.id_director == director).values(id_director=director_new.id)
+            db.session.execute(stmt)
+            db.session.commit()
+
+            stmt = delete(Director).where(Director.id == director)
+            db.session.execute(stmt)
+            db.session.commit()
+            return True
+        except:
+            return False
