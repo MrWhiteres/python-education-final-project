@@ -2,17 +2,26 @@
 Module will be responsible for filling the database with custom values.
 """
 from os import environ
+from sys import platform
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError, PendingRollbackError
 
 load_dotenv()
-engine = create_engine(f"postgresql://{environ['POSTGRES_USER']}:" \
-                       f"{environ['POSTGRES_PASSWORD']}@:5432/{environ['POSTGRES_DB']}").connect()
 
 
-def add_role():
+def create_engine_for_db():
+    if platform == "linux" or platform == "linux2":
+        engine = create_engine(f"postgresql://{environ['POSTGRES_USER']}:" \
+                               f"{environ['POSTGRES_PASSWORD']}@{environ['HOST']}:5432/{environ['POSTGRES_DB']}").connect()
+    elif platform == "win32":
+        engine = create_engine(f"postgresql://{environ['POSTGRES_USER']}:" \
+                               f"{environ['POSTGRES_PASSWORD']}@:5432/{environ['POSTGRES_DB']}").connect()
+    return engine
+
+
+def add_role(engine=create_engine_for_db()):
     """
     function that performs the role of filling data.
     :return:
@@ -23,7 +32,7 @@ def add_role():
         print('Data in Role user already been loaded')
 
 
-def add_genre():
+def add_genre(engine=create_engine_for_db()):
     """
     function that performs the genre of filling data.
     :return:
@@ -34,7 +43,7 @@ def add_genre():
         print('Data in genre already been loaded')
 
 
-def add_director():
+def add_director(engine=create_engine_for_db()):
     """
     function that performs the director of filling data.
     :return:
